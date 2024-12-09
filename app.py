@@ -3,6 +3,8 @@ import torch
 import torchvision.transforms as transforms
 from PIL import Image
 import io
+import requests
+from io import BytesIO
 
 # Define the model structure (same as training)
 class NvidiaModel(torch.nn.Module):
@@ -49,15 +51,25 @@ transform = transforms.Compose([
 # Route for root URL
 @app.route("/", methods=["GET"])
 def home():
-    return "Welcome to the Self-Driving Car API. Use the /predict endpoint to send an image and get a steering angle prediction."
+    return "Tharunshrey Gurrampati, EAI6010"
 
 # Route for prediction
-@app.route("/predict", methods=["POST"])
+@app.route("/predict", methods=["GET", "POST"])
 def predict():
     try:
-        # Get the image from the request
-        file = request.files['image']
-        image = Image.open(io.BytesIO(file.read()))
+        if request.method == "POST":
+            # Handle image upload via POST
+            file = request.files['image']
+            image = Image.open(io.BytesIO(file.read()))
+        elif request.method == "GET":
+            # Handle image URL via GET
+            image_url = request.args.get('image_url')
+            if not image_url:
+                return jsonify({"error": "Please provide an image URL using the 'image_url' query parameter."})
+            response = requests.get(image_url)
+            if response.status_code != 200:
+                return jsonify({"error": "Unable to fetch image from the provided URL."})
+            image = Image.open(BytesIO(response.content))
 
         # Preprocess the image
         image = transform(image).unsqueeze(0)  # Add batch dimension
