@@ -43,7 +43,7 @@ app = Flask(__name__)
 
 # Define preprocessing transforms
 transform = transforms.Compose([
-    transforms.Resize((66, 200)),
+    transforms.Resize((66, 200)),  # Ensure size matches model input
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
@@ -52,7 +52,6 @@ transform = transforms.Compose([
 @app.route("/", methods=["GET"])
 def home():
     return "Tharunshrey Gurrampati, EAI6010"
-
 # Route for prediction
 @app.route("/predict", methods=["GET", "POST"])
 def predict():
@@ -71,8 +70,16 @@ def predict():
                 return jsonify({"error": "Unable to fetch image from the provided URL."})
             image = Image.open(BytesIO(response.content))
 
+        # Ensure image has 3 channels (RGB)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+
         # Preprocess the image
         image = transform(image).unsqueeze(0)  # Add batch dimension
+
+        # Validate tensor shape
+        if image.shape != (1, 3, 66, 200):
+            return jsonify({"error": f"Invalid image dimensions {image.shape}. Expected (1, 3, 66, 200)."})
 
         # Make prediction
         with torch.no_grad():
@@ -89,3 +96,4 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))  # Use dynamic port for deployment
     app.run(host="0.0.0.0", port=port)
+
