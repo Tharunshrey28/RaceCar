@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 import torch
 import torchvision.transforms as transforms
@@ -34,7 +33,7 @@ class NvidiaModel(torch.nn.Module):
 
 # Load the trained model
 model = NvidiaModel()
-model.load_state_dict(torch.load("nvidia_model.pth"))
+model.load_state_dict(torch.load("nvidia_model.pth", map_location=torch.device('cpu')))
 model.eval()
 
 # Define Flask app
@@ -47,6 +46,12 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
 
+# Route for root URL
+@app.route("/", methods=["GET"])
+def home():
+    return "Welcome to the Self-Driving Car API. Use the /predict endpoint to send an image and get a steering angle prediction."
+
+# Route for prediction
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -67,5 +72,8 @@ def predict():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+# Run the app
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    import os
+    port = int(os.environ.get("PORT", 5000))  # Use dynamic port for deployment
+    app.run(host="0.0.0.0", port=port)
